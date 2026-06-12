@@ -1,0 +1,60 @@
+---
+- name: Check PermitRootLogin
+  ansible.builtin.command: sshd -T
+  register: sshd_effective_config
+  changed_when: false
+
+- name: Verify root login is disabled
+  ansible.builtin.assert:
+    that:
+      - "'permitrootlogin no' in sshd_effective_config.stdout"
+    fail_msg: "PermitRootLogin is not disabled."
+    success_msg: "PermitRootLogin is disabled."
+
+- name: Verify password authentication is disabled
+  ansible.builtin.assert:
+    that:
+      - "'passwordauthentication no' in sshd_effective_config.stdout"
+    fail_msg: "PasswordAuthentication is not disabled."
+    success_msg: "PasswordAuthentication is disabled."
+
+- name: Check ufw status
+  ansible.builtin.command: ufw status
+  register: ufw_status
+  changed_when: false
+
+- name: Verify ufw is active
+  ansible.builtin.assert:
+    that:
+      - "'Status: active' in ufw_status.stdout"
+    fail_msg: "UFW is not active."
+    success_msg: "UFW is active."
+
+- name: Check fail2ban service
+  ansible.builtin.service_facts:
+
+- name: Verify fail2ban is running
+  ansible.builtin.assert:
+    that:
+      - "ansible_facts.services['fail2ban.service'].state == 'running'"
+    fail_msg: "fail2ban is not running."
+    success_msg: "fail2ban is running."
+
+- name: Verify auditd is running
+  ansible.builtin.assert:
+    that:
+      - "ansible_facts.services['auditd.service'].state == 'running'"
+    fail_msg: "auditd is not running."
+    success_msg: "auditd is running."
+
+- name: Check unattended-upgrades config
+  ansible.builtin.stat:
+    path: /etc/apt/apt.conf.d/20auto-upgrades
+  register: auto_upgrade_conf
+
+- name: Verify unattended-upgrades config exists
+  ansible.builtin.assert:
+    that:
+      - auto_upgrade_conf.stat.exists
+    fail_msg: "Automatic updates config does not exist."
+    success_msg: "Automatic updates config exists."

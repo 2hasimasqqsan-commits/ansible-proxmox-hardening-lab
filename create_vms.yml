@@ -1,0 +1,7 @@
+---
+- name: Create hardening lab VM on Proxmox VE
+  hosts: localhost
+  gather_facts: false
+
+  roles:
+    - proxmox_vm

@@ -1,0 +1,57 @@
+---
+# ============================================================
+# Proxmox VE API settings
+# ============================================================
+proxmox_api_host: "192.168.56.38"
+proxmox_api_user: "ansible@pve"
+proxmox_api_token_id: "ansible-token"
+proxmox_api_token_secret: "CHANGE_ME"
+proxmox_node: "pve3"
+
+# ============================================================
+# Proxmox VM template
+# ============================================================
+template_vmid: 9000
+template_name: "ubuntu-2404-cloudinit-template"
+clone_type: "full"
+
+# ============================================================
+# Hardening target VM
+# ============================================================
+hardening_vm_id: 9203
+hardening_vm_name: "hardening-lab01"
+hardening_vm_cores: 1
+hardening_vm_memory: 2048
+hardening_vm_disk_size: "16G"
+hardening_vm_storage: "local-lvm"
+hardening_vm_bridge: "vmbr0"
+
+# Cloud-init network
+hardening_vm_ip: "192.168.56.203/24"
+hardening_vm_gateway: "192.168.56.2"
+hardening_vm_dns: "192.168.56.122"
+
+# Cloud-init user
+cloudinit_user: "ansible"
+cloudinit_password: "CHANGE_ME"
+ssh_public_key_path: "~/.ssh/id_rsa.pub"
+
+# ============================================================
+# Security hardening settings
+# ============================================================
+admin_user: "ansible"
+ssh_port: 22
+
+allowed_tcp_ports:
+  - 22
+
+fail2ban_bantime: "60"
+fail2ban_findtime: "300"
+fail2ban_maxretry: "5"
+
+# ============================================================
+# Proxmox SSH settings for disk resize
+# ============================================================
+enable_disk_resize: true
+pve_ssh_user: "root"
+resize_disk_name: "scsi0"

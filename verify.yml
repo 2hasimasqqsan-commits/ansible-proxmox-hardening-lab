@@ -1,0 +1,7 @@
+---
+- name: Verify Linux security hardening
+  hosts: hardening_targets
+  become: true
+
+  roles:
+    - verify

@@ -1,0 +1,28 @@
+# Ansible local/private files
+group_vars/all.yml
+inventory.ini
+vault.yml
+.vault_pass
+*.retry
+*.log
+
+# Python / virtualenv
+.venv/
+__pycache__/
+*.pyc
+
+# Ansible collections installed locally
+collections/
+
+# SSH / secrets
+*.pem
+*.key
+id_rsa
+id_rsa.pub
+*.crt
+*.csr
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/

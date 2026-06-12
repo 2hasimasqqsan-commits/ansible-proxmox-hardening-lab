@@ -1,0 +1,106 @@
+---
+- name: Read SSH public key
+  ansible.builtin.slurp:
+    src: "{{ ssh_public_key_path | expanduser }}"
+  register: ssh_pubkey_raw
+
+- name: Set SSH public key fact
+  ansible.builtin.set_fact:
+    ssh_public_key_content: "{{ ssh_pubkey_raw.content | b64decode }}"
+
+- name: Clone VM from cloud-init template
+  community.proxmox.proxmox_kvm:
+    api_host: "{{ proxmox_api_host }}"
+    api_user: "{{ proxmox_api_user }}"
+    api_token_id: "{{ proxmox_api_token_id }}"
+    api_token_secret: "{{ proxmox_api_token_secret }}"
+    validate_certs: false
+    node: "{{ proxmox_node }}"
+
+    clone: "{{ template_name }}"
+    vmid: "{{ template_vmid }}"
+    newid: "{{ hardening_vm_id }}"
+    name: "{{ hardening_vm_name }}"
+    full: "{{ clone_type == 'full' }}"
+    storage: "{{ hardening_vm_storage }}"
+    timeout: 300
+    state: present
+
+- name: Configure VM hardware
+  community.proxmox.proxmox_kvm:
+    api_host: "{{ proxmox_api_host }}"
+    api_user: "{{ proxmox_api_user }}"
+    api_token_id: "{{ proxmox_api_token_id }}"
+    api_token_secret: "{{ proxmox_api_token_secret }}"
+    validate_certs: false
+    node: "{{ proxmox_node }}"
+    vmid: "{{ hardening_vm_id }}"
+    cores: "{{ hardening_vm_cores }}"
+    memory: "{{ hardening_vm_memory }}"
+    net:
+      net0: "virtio,bridge={{ hardening_vm_bridge }}"
+    update: true
+
+- name: Configure cloud-init user and network
+  community.proxmox.proxmox_kvm:
+    api_host: "{{ proxmox_api_host }}"
+    api_user: "{{ proxmox_api_user }}"
+    api_token_id: "{{ proxmox_api_token_id }}"
+    api_token_secret: "{{ proxmox_api_token_secret }}"
+    validate_certs: false
+    node: "{{ proxmox_node }}"
+    vmid: "{{ hardening_vm_id }}"
+    ciuser: "{{ cloudinit_user }}"
+    cipassword: "{{ cloudinit_password }}"
+    sshkeys: "{{ ssh_public_key_content }}"
+    ipconfig:
+      ipconfig0: "ip={{ hardening_vm_ip }},gw={{ hardening_vm_gateway }}"
+    nameservers:
+      - "{{ hardening_vm_dns }}"
+    update: true
+
+- name: Get current VM disk size
+  ansible.builtin.shell: |
+    qm config {{ hardening_vm_id }} | awk -F'size=' '/^{{ resize_disk_name | default("scsi0") }}:/ {split($2,a,","); print a[1]}'
+  args:
+    executable: /bin/bash
+  delegate_to: "{{ proxmox_api_host }}"
+  vars:
+    ansible_user: "{{ pve_ssh_user | default('root') }}"
+  register: current_disk_size_result
+  changed_when: false
+  when: enable_disk_resize | default(false) | bool
+
+- name: Show current VM disk size
+  ansible.builtin.debug:
+    msg: "Current disk size is {{ current_disk_size_result.stdout | default('unknown') }}, desired size is {{ hardening_vm_disk_size }}"
+  when: enable_disk_resize | default(false) | bool
+
+- name: Resize VM disk
+  ansible.builtin.command:
+    cmd: "qm resize {{ hardening_vm_id }} {{ resize_disk_name | default('scsi0') }} {{ hardening_vm_disk_size }}"
+  delegate_to: "{{ proxmox_api_host }}"
+  vars:
+    ansible_user: "{{ pve_ssh_user | default('root') }}"
+  changed_when: true
+  when:
+    - enable_disk_resize | default(false) | bool
+    - current_disk_size_result.stdout | trim != hardening_vm_disk_size
+
+- name: Start VM
+  community.proxmox.proxmox_kvm:
+    api_host: "{{ proxmox_api_host }}"
+    api_user: "{{ proxmox_api_user }}"
+    api_token_id: "{{ proxmox_api_token_id }}"
+    api_token_secret: "{{ proxmox_api_token_secret }}"
+    validate_certs: false
+    node: "{{ proxmox_node }}"
+    vmid: "{{ hardening_vm_id }}"
+    state: started
+
+- name: Wait for SSH to become available
+  ansible.builtin.wait_for:
+    host: "{{ hardening_vm_ip.split('/')[0] }}"
+    port: 22
+    delay: 20
+    timeout: 300

@@ -1,0 +1,13 @@
+---
+- name: Apply Linux security hardening
+  hosts: hardening_targets
+  become: true
+
+  roles:
+    - common
+    - users
+    - ssh_hardening
+    - firewall
+    - fail2ban
+    - auditd
+    - automatic_updates
