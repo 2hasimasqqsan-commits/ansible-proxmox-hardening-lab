@@ -32,6 +32,24 @@ Linux VM
 Hardened Linux Server
 ```
 
+## Screenshots
+
+### VM provisioning and disk resize
+
+![VM provisioning success](docs/images/create-vm-success.png)
+
+### Proxmox VM hardware
+
+![Proxmox VM hardware](docs/images/proxmox-vm-hardware.png)
+
+### Hardening verification
+
+![Verify playbook success](docs/images/verify-success.png)
+
+### External access test
+
+![External SSH test](docs/images/external-ssh-test.png)
+
 ## Roles
 - proxmox_vm - clone and configure a VM on Proxmox VE
 - common - install common packages
